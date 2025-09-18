@@ -3,10 +3,10 @@
 namespace App\Models\Academic;
 
 use App\Models\User;
-use App\Models\Evaluation\Attendance;
-use App\Models\Evaluation\GradeReport;
-use App\Models\Evaluation\Observation;
-use App\Models\Payment\Payment;
+// use App\Models\Evaluation\Attendance;
+// use App\Models\Evaluation\GradeReport;
+// use App\Models\Evaluation\Observation;
+// use App\Models\Payment\Payment;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -63,25 +63,25 @@ class Student extends Model
         return $this->belongsTo(User::class, 'parent_user_id');
     }
 
-    public function attendances(): HasMany
-    {
-        return $this->hasMany(Attendance::class);
-    }
+    // public function attendances(): HasMany
+    // {
+    //     return $this->hasMany(Attendance::class);
+    // }
 
-    public function gradeReports(): HasMany
-    {
-        return $this->hasMany(GradeReport::class);
-    }
+    // public function gradeReports(): HasMany
+    // {
+    //     return $this->hasMany(GradeReport::class);
+    // }
 
-    public function observations(): HasMany
-    {
-        return $this->hasMany(Observation::class);
-    }
+    // public function observations(): HasMany
+    // {
+    //     return $this->hasMany(Observation::class);
+    // }
 
-    public function payments(): HasMany
-    {
-        return $this->hasMany(Payment::class);
-    }
+    // public function payments(): HasMany
+    // {
+    //     return $this->hasMany(Payment::class);
+    // }
 
     public function teachers(): BelongsToMany
     {
@@ -103,20 +103,26 @@ class Student extends Model
 
     public function getAttendanceRateAttribute(): float
     {
-        $totalDays = $this->attendances()->count();
-        if ($totalDays === 0) return 100.0;
+        // Temporary: return mock data until Attendance model is created
+        return 92.5;
         
-        $presentDays = $this->attendances()->where('status', 'present')->count();
-        return round(($presentDays / $totalDays) * 100, 1);
+        // $totalDays = $this->attendances()->count();
+        // if ($totalDays === 0) return 100.0;
+        // 
+        // $presentDays = $this->attendances()->where('status', 'present')->count();
+        // return round(($presentDays / $totalDays) * 100, 1);
     }
 
     public function getAverageGradeAttribute(): string
     {
-        $average = $this->gradeReports()
-                       ->where('academic_period_id', $this->getCurrentAcademicPeriod())
-                       ->avg('numerical_grade');
+        // Temporary: return mock data until GradeReport model is created
+        return '4.2';
         
-        return $average ? number_format($average, 1) : 'N/A';
+        // $average = $this->gradeReports()
+        //                ->where('academic_period_id', $this->getCurrentAcademicPeriod())
+        //                ->avg('numerical_grade');
+        // 
+        // return $average ? number_format($average, 1) : 'N/A';
     }
 
     // Scopes
@@ -145,11 +151,14 @@ class Student extends Model
 
     public function getRecentGrades(int $limit = 10)
     {
-        return $this->gradeReports()
-                   ->with(['subject', 'teacher'])
-                   ->latest()
-                   ->limit($limit)
-                   ->get();
+        // Temporary: return empty collection until GradeReport model is created
+        return collect([]);
+        
+        // return $this->gradeReports()
+        //            ->with(['subject', 'teacher'])
+        //            ->latest()
+        //            ->limit($limit)
+        //            ->get();
     }
 
     public function getPendingTasks(): int

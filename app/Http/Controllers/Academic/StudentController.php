@@ -133,13 +133,94 @@ class StudentController extends Controller
             ->with('success', 'Estudiante eliminado exitosamente.');
     }
 
+    public function parentDashboard()
+    {
+        $user = auth()->user();
+        $students = $user->children()->with('grade')->get();
+        
+        $recentGrades = collect();
+        $recentCommunications = collect();
+        $pendingTasks = 0;
+        
+        if ($students->isNotEmpty()) {
+            // Get recent grades for all children
+            $recentGrades = \App\Models\Evaluation\GradeReport::whereIn('student_id', $students->pluck('id'))
+                ->with(['subject', 'student'])
+                ->latest()
+                ->limit(10)
+                ->get();
+            
+            // Mock communications - replace with actual model when implemented
+            $recentCommunications = collect([
+                [
+                    'id' => 1,
+                    'title' => 'Reunión de padres',
+                    'excerpt' => 'Se realizará el próximo viernes...',
+                    'date' => now()->subDays(2)->format('M d'),
+                    'sender' => 'Coordinación'
+                ]
+            ]);
+            
+            $pendingTasks = 3; // Mock data
+        }
+        
+        return Inertia::render('parent/Dashboard', [
+            'students' => $students,
+            'recentGrades' => $recentGrades,
+            'recentCommunications' => $recentCommunications,
+            'pendingTasks' => $pendingTasks,
+        ]);
+    }
+
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+        
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+        
+        $students = Student::with(['grade', 'parent'])
+                          ->where('first_name', 'like', "%{$query}%")
+                          ->orWhere('last_name', 'like', "%{$query}%")
+                          ->orWhere('code', 'like', "%{$query}%")
+                          ->orWhere('identification_number', 'like', "%{$query}%")
+                          ->limit(10)
+                          ->get();
+        
+        return response()->json($students);
+    }
+
+    public function transfer(Request $request, Student $student)
+    {
+        $request->validate([
+            'new_grade_id' => 'required|exists:grades,id',
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $newGrade = Grade::findOrFail($request->new_grade_id);
+        
+        $studentService = app(\App\Services\Academic\StudentService::class);
+        $studentService->transferStudent($student, $newGrade, $request->reason);
+
+        return redirect()
+            ->route('students.show', $student)
+            ->with('success', 'Estudiante transferido exitosamente.');
+    }
+
+    public function academicSummary(Student $student)
+    {
+        $this->authorize('view', $student);
+        
+        $studentService = app(\App\Services\Academic\StudentService::class);
+        $summary = $studentService->getStudentAcademicSummary($student);
+        
+        return response()->json($summary);
+    }
+
     private function getAvailableParents()
     {
         return \App\Models\User::role('parent')
-                              ->whereDoesntHave('children')
-                              ->orWhereHas('children', function ($q) {
-                                  $q->where('students.id', '!=', request()->route('student')?->id);
-                              })
                               ->get(['id', 'name', 'email']);
     }
 }
