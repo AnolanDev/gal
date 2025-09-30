@@ -305,25 +305,25 @@
           <div class="flex justify-between items-center">
             <div class="flex space-x-3">
               <button
-                @click="updateStatus('activo')"
-                v-if="datosEstudiante.estado !== 'activo'"
-                class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700"
+                @click="abrirModalCambioEstado('activo')"
+                v-if="datosEstudiante.estado !== 'activo' && datosEstudiante.estado !== 'retirado'"
+                class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150"
               >
                 <CheckCircleIcon class="h-4 w-4 mr-2" />
                 Activar
               </button>
               <button
-                @click="updateStatus('inactivo')"
-                v-if="datosEstudiante.estado !== 'inactivo'"
-                class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700"
+                @click="abrirModalCambioEstado('inactivo')"
+                v-if="datosEstudiante.estado !== 'inactivo' && datosEstudiante.estado !== 'retirado'"
+                class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700 focus:bg-yellow-700 active:bg-yellow-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition ease-in-out duration-150"
               >
                 <PauseCircleIcon class="h-4 w-4 mr-2" />
                 Inactivar
               </button>
               <button
-                @click="updateStatus('retirado')"
+                @click="abrirModalCambioEstado('retirado')"
                 v-if="datosEstudiante.estado !== 'retirado'"
-                class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700"
+                class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 focus:bg-red-700 active:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150"
               >
                 <XCircleIcon class="h-4 w-4 mr-2" />
                 Retirar
@@ -335,6 +335,15 @@
           </div>
         </div>
       </div>
+
+      <!-- Modal de Cambio de Estado -->
+      <CambioEstadoModal
+        :open="modalCambioEstado.abierto"
+        :estudiante="datosEstudiante"
+        :nuevo-estado="modalCambioEstado.nuevoEstado"
+        @cerrar="cerrarModalCambioEstado"
+        @confirmado="onEstadoCambiado"
+      />
     </div>
   </AuthenticatedLayout>
 </template>
@@ -344,6 +353,7 @@ import { ref, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import InfoCard from '@/Components/InfoCard.vue'
+import CambioEstadoModal from '@/Components/Estudiantes/CambioEstadoModal.vue'
 
 // Icons
 import {
@@ -379,6 +389,10 @@ const datosEstudiante = computed(() => {
 
 // Reactive data
 const activeTab = ref(0)
+const modalCambioEstado = ref({
+  abierto: false,
+  nuevoEstado: null
+})
 
 // Tabs configuration
 const tabs = [
@@ -390,6 +404,22 @@ const tabs = [
 ]
 
 // Methods
+const abrirModalCambioEstado = (nuevoEstado) => {
+  modalCambioEstado.value.nuevoEstado = nuevoEstado
+  modalCambioEstado.value.abierto = true
+}
+
+const cerrarModalCambioEstado = () => {
+  modalCambioEstado.value.abierto = false
+  modalCambioEstado.value.nuevoEstado = null
+}
+
+const onEstadoCambiado = () => {
+  cerrarModalCambioEstado()
+  // El modal maneja la actualización automáticamente a través de Inertia
+}
+
+// Método legacy mantenido para compatibilidad
 const updateStatus = (nuevoEstado) => {
   const mensaje = {
     'activo': '¿Activar este estudiante?',

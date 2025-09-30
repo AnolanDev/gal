@@ -293,6 +293,109 @@ class EstudianteController extends Controller
     }
 
     /**
+     * Change student status with professional modal workflow
+     */
+    public function cambiarEstado(Request $request, Estudiante $estudiante)
+    {
+        $request->validate([
+            'estado' => 'required|in:activo,inactivo,retirado',
+            'observaciones' => 'required_if:estado,retirado|nullable|string|max:500'
+        ], [
+            'estado.required' => 'El estado es obligatorio.',
+            'estado.in' => 'El estado debe ser activo, inactivo o retirado.',
+            'observaciones.required_if' => 'Las observaciones son obligatorias para retirar un estudiante.',
+            'observaciones.max' => 'Las observaciones no pueden exceder 500 caracteres.'
+        ]);
+
+        DB::beginTransaction();
+        
+        try {
+            $estadoAnterior = $estudiante->estado;
+            $nuevoEstado = $request->estado;
+            
+            // Validar transición de estado
+            $this->validarTransicionEstado($estadoAnterior, $nuevoEstado);
+            
+            // Preparar observaciones con timestamp
+            $observacionesActuales = $estudiante->observaciones ?: '';
+            $nuevaObservacion = '';
+            
+            if ($request->observaciones) {
+                $fecha = now()->format('Y-m-d H:i:s');
+                $usuario = auth()->user()->name ?? 'Sistema';
+                $nuevaObservacion = "\n[{$fecha}] Estado cambiado de '{$estadoAnterior}' a '{$nuevoEstado}' por {$usuario}: {$request->observaciones}";
+            } else {
+                $fecha = now()->format('Y-m-d H:i:s');
+                $usuario = auth()->user()->name ?? 'Sistema';
+                $nuevaObservacion = "\n[{$fecha}] Estado cambiado de '{$estadoAnterior}' a '{$nuevoEstado}' por {$usuario}";
+            }
+            
+            // Actualizar estudiante
+            $estudiante->update([
+                'estado' => $nuevoEstado,
+                'observaciones' => $observacionesActuales . $nuevaObservacion
+            ]);
+            
+            // Log de auditoría
+            \Log::info('Cambio de estado de estudiante', [
+                'estudiante_id' => $estudiante->id,
+                'codigo_estudiante' => $estudiante->codigo_estudiante,
+                'nombre_completo' => $estudiante->nombre_completo,
+                'estado_anterior' => $estadoAnterior,
+                'estado_nuevo' => $nuevoEstado,
+                'observaciones' => $request->observaciones,
+                'usuario_id' => auth()->id(),
+                'usuario_nombre' => auth()->user()->name ?? 'Sistema',
+                'timestamp' => now(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            
+            DB::commit();
+            
+            $mensajes = [
+                'activo' => 'Estudiante activado exitosamente.',
+                'inactivo' => 'Estudiante inactivado exitosamente.',
+                'retirado' => 'Estudiante retirado exitosamente.'
+            ];
+            
+            return back()->with('success', $mensajes[$nuevoEstado]);
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error al cambiar estado de estudiante', [
+                'estudiante_id' => $estudiante->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->withErrors(['error' => 'Error al cambiar el estado: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Validate state transition rules
+     */
+    private function validarTransicionEstado(string $estadoActual, string $nuevoEstado): void
+    {
+        // No se puede cambiar desde retirado (estado final)
+        if ($estadoActual === 'retirado') {
+            throw new \InvalidArgumentException('No se puede cambiar el estado de un estudiante retirado.');
+        }
+        
+        // No se puede cambiar al mismo estado
+        if ($estadoActual === $nuevoEstado) {
+            throw new \InvalidArgumentException("El estudiante ya se encuentra en estado '{$nuevoEstado}'.");
+        }
+        
+        // Todas las demás transiciones son válidas:
+        // activo -> inactivo
+        // activo -> retirado  
+        // inactivo -> activo
+        // inactivo -> retirado
+    }
+
+    /**
      * Bulk update students status
      */
     public function bulkUpdateStatus(Request $request)

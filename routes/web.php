@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('estudiantes', EstudianteController::class);
     Route::get('/estudiantes/{estudiante}/profile', [EstudianteController::class, 'profile'])->name('estudiantes.profile');
     Route::patch('/estudiantes/{estudiante}/status', [EstudianteController::class, 'updateStatus'])->name('estudiantes.update-status');
+    Route::patch('/estudiantes/{estudiante}/cambiar-estado', [EstudianteController::class, 'cambiarEstado'])->name('estudiantes.cambiar-estado');
     Route::patch('/estudiantes/bulk-status', [EstudianteController::class, 'bulkUpdateStatus'])->name('estudiantes.bulk-update-status');
     Route::get('/api/estudiantes/search', [EstudianteController::class, 'search'])->name('estudiantes.search');
     
