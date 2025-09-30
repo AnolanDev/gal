@@ -57,7 +57,7 @@ export const navigationConfig = {
       children: [
         {
           name: 'Lista de Estudiantes',
-          href: null, // Placeholder - implementar ruta
+          href: 'estudiantes.index',
           icon: 'UserGroupIcon'
         },
         {
